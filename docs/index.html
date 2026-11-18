@@ -2,11 +2,25 @@
 <html>
 <head>
 <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>EDSTA App Tracker</title>
+<link rel="icon" type="image/x-icon" href="favicon.ico">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png">
+<link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#1a5276">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="EDSTA">
+<meta name="mobile-web-app-capable" content="yes">
 <style>
   body { font-family: Arial, sans-serif; margin: 0; color: #202124; background: #f6f8fa; }
   header { background: #1a5276; color: #fff; padding: 14px 20px; }
   header { display: flex; justify-content: space-between; align-items: center; }
   header h1 { margin: 0; font-size: 20px; }
+  .brand { display: flex; align-items: center; gap: 12px; }
+  .brand img { border-radius: 8px; }
+  .biglogo { border-radius: 18px; margin-bottom: 8px; }
   #who { font-size: 13px; }
   #gate { max-width: 420px; margin: 60px auto; text-align: center; }
   .err { color: #b42318; margin-top: 10px; }
@@ -33,8 +47,8 @@
 </style>
 </head>
 <body>
-<header><h1>EDSTA: Classroom Software Disclosure</h1><div id="who"><span id="email"></span> <button id="signout" style="display:none;padding:4px 10px;font-size:13px">Sign out</button></div></header>
-<div id="gate"><p>Sign in with your school Google account to continue.</p><button id="signin">Sign in with Google</button><div id="gateMsg" class="err"></div></div>
+<header><div class="brand"><img src="logo.png" alt="EDSTA logo" width="44" height="44"><h1>EDSTA: Classroom Software Disclosure</h1></div><div id="who"><span id="email"></span> <button id="signout" style="display:none;padding:4px 10px;font-size:13px">Sign out</button></div></header>
+<div id="gate"><img src="logo.png" alt="EDSTA App Tracker" width="150" height="150" class="biglogo"><p>Sign in with your school Google account to continue.</p><button id="signin">Sign in with Google</button><div id="gateMsg" class="err"></div></div>
 <main>
   <section>
     <h2>1. Choose your class(es)</h2>
