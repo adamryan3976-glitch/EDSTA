@@ -41,7 +41,7 @@ Each time a class is saved, the app makes (or updates) a Google Doc for that cla
 - Docs are created in a Drive folder called "EDSTA Parent Letters" (or the folder ID in the Script Property `LETTERS_FOLDER_ID`) owned by the account that runs the script, and are set to "anyone with the link can view". If your board's Google settings block that, the app says so next to the link.
 - The template is read from the doc ID at the top of `Code.js` (`TEMPLATE_DOC_ID`). The app must be able to open it. If DDSB changes the template, use EDSTA > Refresh all parent letter docs.
 - Apps that are no longer on the approved list are left out of the parent letter (they still show with a warning on `Letters`).
-- The first save after updating asks Google for new permissions (Drive and Docs). Run any function once from the editor, such as `setup`, and click Allow. Then run EDSTA > Set up tabs to create the `ClassLetters` tab, and deploy a new version.
+- The manifest (`appsscript.json`) lists the permissions the app needs, including full Google Drive access because the script creates the letters folder and copies the template. After pasting the manifest, run `authorizeAll` once from the editor and click Allow. Then run EDSTA > Set up tabs to create the `ClassLetters` tab, and deploy a new version.
 
 ## Behaviour
 - One class: saved apps load pre-ticked and can be edited or removed.
