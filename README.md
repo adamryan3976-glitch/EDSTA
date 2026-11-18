@@ -22,7 +22,7 @@ Note the Apps Script web app has to be deployed as "Anyone" so the GitHub Pages 
 3. Project settings > General: add a Web app and copy its config values (`apiKey`, `authDomain`, `projectId`) into `docs/config.js`.
 
 ### 3. Tell Apps Script who may use it
-Apps Script > Project Settings > Script Properties, add:
+`src/Code.js` already contains the Firebase key and `ddsb.ca` as defaults at the top of the file. Edit them there for a different project or domain, or override with Script Properties (Project Settings > Script Properties):
 - `FIREBASE_API_KEY` = the same web `apiKey`
 - `ALLOWED_DOMAIN` = your staff email domain, for example `ddsb.ca`
 

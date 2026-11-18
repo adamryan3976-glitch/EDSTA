@@ -10,7 +10,10 @@ var SHEETS = {
 var PII_HEADER = 'Specific Elements of Personal Information Shared (e.g., Name, Email, ID)';
 
 // ---- Web API (called by the GitHub Pages front end) ----
-// Script Properties required: FIREBASE_API_KEY, ALLOWED_DOMAIN (e.g. ddsb.ca)
+// Settings. Script Properties FIREBASE_API_KEY / ALLOWED_DOMAIN override these if set.
+// The Firebase web API key is public by design; access is enforced by the token check below.
+var DEFAULT_FIREBASE_API_KEY = 'AIzaSyAjps31IMsnkDPReuPOTxKASW5gT69HrvQ';
+var DEFAULT_ALLOWED_DOMAIN = 'ddsb.ca';
 
 function doGet() {
   return json_({ ok: true, service: 'EDSTA app collector' });
@@ -38,8 +41,8 @@ function json_(obj) {
 function verifyIdToken_(idToken) {
   if (!idToken) throw new Error('Not signed in');
   var props = PropertiesService.getScriptProperties();
-  var key = props.getProperty('FIREBASE_API_KEY');
-  var domain = props.getProperty('ALLOWED_DOMAIN');
+  var key = props.getProperty('FIREBASE_API_KEY') || DEFAULT_FIREBASE_API_KEY;
+  var domain = props.getProperty('ALLOWED_DOMAIN') || DEFAULT_ALLOWED_DOMAIN;
   if (!key || !domain) throw new Error('Server not configured (FIREBASE_API_KEY / ALLOWED_DOMAIN)');
 
   var cache = CacheService.getScriptCache();
