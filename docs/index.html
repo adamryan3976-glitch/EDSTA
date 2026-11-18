@@ -145,11 +145,17 @@ function letterFor(name) {
 }
 
 function fillSignature() {
-  var ch = chosen(), sigs = {}, n = 0, last = '';
-  ch.forEach(function (c) { var l = letterFor(c); if (l && l.signature) { if (!sigs[l.signature]) n++; sigs[l.signature] = 1; last = l.signature; } });
+  var ch = chosen(), sigs = {}, withSig = 0, last = '';
+  ch.forEach(function (c) {
+    var l = letterFor(c);
+    if (l && l.signature) { sigs[l.signature] = 1; withSig++; last = l.signature; }
+  });
   var box = el('signature');
-  // keep what the teacher is typing when several classes have different saved signatures
-  if (n === 1 || ch.length === 1) box.value = last;
+  if (ch.length === 1) { box.value = last; return; }
+  // Several classes: only pre-fill when every one already has the same signature,
+  // so a name saved for one class is never silently applied to another.
+  if (ch.length > 1 && withSig === ch.length && Object.keys(sigs).length === 1) box.value = last;
+  else if (ch.length > 1) box.value = '';
 }
 
 function showLinks(list) {

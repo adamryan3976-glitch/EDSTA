@@ -347,20 +347,18 @@ function renderLetterDoc_(docId, model) {
   var tables = body.getTables();
   if (!tables.length) throw new Error('The template has no table to fill in');
   var tbl = tables[0];
-  var hdr = tbl.getRow(0).getCell(0).editAsText();
-  var size = hdr.getFontSize(), family = hdr.getFontFamily();
+  // Use one of the template's own rows as the pattern so borders and cell styling are kept.
+  var proto = (tbl.getNumRows() > 1 ? tbl.getRow(1) : tbl.getRow(0)).copy().asTableRow();
   while (tbl.getNumRows() > 1) tbl.removeRow(tbl.getNumRows() - 1);
   var rows = model.rows.length ? model.rows
     : [['No third-party tools have been recorded for this class yet.', '', '']];
   rows.forEach(function (r) {
-    var tr = tbl.appendTableRow();
-    r.forEach(function (v) {
-      var cell = tr.appendTableCell(String(v));
-      var tx = cell.editAsText();
-      tx.setItalic(false).setBold(false);
-      if (size) tx.setFontSize(size);
-      if (family) tx.setFontFamily(family);
-    });
+    var tr = tbl.appendTableRow(proto.copy().asTableRow());
+    for (var c = 0; c < tr.getNumCells(); c++) {
+      var cell = tr.getCell(c);
+      cell.setText(String(r[c] == null ? '' : r[c]));
+      cell.editAsText().setItalic(false).setBold(false);
+    }
   });
   doc.saveAndClose();
 }
@@ -398,4 +396,13 @@ function refreshAllLetterDocs() {
   var bad = results.filter(function (r) { return !r.ok; });
   SpreadsheetApp.getUi().alert('Refreshed ' + (results.length - bad.length) + ' letter(s).' +
     (bad.length ? '\n\nProblems:\n' + bad.map(function (b) { return b.className + ': ' + b.error; }).join('\n') : ''));
+}
+
+// Run this once from the Apps Script editor (select "authorizeAll", click Run, then Allow).
+// It touches every Google service the app uses so one approval covers all of them.
+function authorizeAll() {
+  SpreadsheetApp.getActiveSpreadsheet().getName();
+  DriveApp.getRootFolder().getName();
+  DocumentApp.openById(TEMPLATE_DOC_ID).getName(); // also proves this account can open the template
+  Logger.log('All permissions approved, and the letter template can be opened.');
 }
