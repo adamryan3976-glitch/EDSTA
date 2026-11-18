@@ -96,6 +96,12 @@ function isStaffListed(email, list) {
   return !!e && allowed.indexOf(e) >= 0;
 }
 
+// Cell value to text. Sheets turns "1/2" into a date; fmtDate(d) must give back "1/2".
+function cellText(v, fmtDate) {
+  if (v instanceof Date) return fmtDate(v);
+  return String(v == null ? '' : v).trim();
+}
+
 if (typeof module !== 'undefined') {
-  module.exports = { normName: normName, upsertResponses: upsertResponses, buildLetters: buildLetters, isAllowedEmail: isAllowedEmail, isStaffListed: isStaffListed, NOT_ON_LIST: NOT_ON_LIST };
+  module.exports = { normName: normName, upsertResponses: upsertResponses, buildLetters: buildLetters, isAllowedEmail: isAllowedEmail, isStaffListed: isStaffListed, cellText: cellText, NOT_ON_LIST: NOT_ON_LIST };
 }

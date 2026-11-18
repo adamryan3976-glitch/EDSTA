@@ -123,3 +123,17 @@ test('isStaffListed rejects an email that is not on a non-empty list', () => {
   assert.strictEqual(isStaffListed('student@ddsb.ca', ['ann@ddsb.ca', 'bob@ddsb.ca']), false);
   assert.strictEqual(isStaffListed('', ['ann@ddsb.ca']), false);
 });
+
+const { cellText } = require('../src/Logic.js');
+
+test('cellText turns a date cell back into month/day, as in 1/2 for Jan 2', () => {
+  const fmt = d => (d.getMonth() + 1) + '/' + d.getDate();
+  assert.strictEqual(cellText(new Date(2026, 0, 2), fmt), '1/2');
+  assert.strictEqual(cellText(new Date(2026, 6, 8), fmt), '7/8');
+});
+
+test('cellText leaves text and numbers alone and trims', () => {
+  assert.strictEqual(cellText(' FDK ', () => 'x'), 'FDK');
+  assert.strictEqual(cellText(3, () => 'x'), '3');
+  assert.strictEqual(cellText(null, () => 'x'), '');
+});
