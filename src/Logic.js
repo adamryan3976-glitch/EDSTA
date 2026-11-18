@@ -123,6 +123,41 @@ function classifyAllApps(rows) {
   return { noPii: noPii, district: district };
 }
 
+// Teacher-typed signature for the parent letter: one line, at most 200 characters.
+function cleanSignature(s) {
+  var t = String(s == null ? '' : s).replace(/\s+/g, ' ').trim();
+  if (!t) throw new Error('Signature required');
+  return t.slice(0, 200);
+}
+
+// One metadata row per class: signature plus the letter doc it belongs to.
+function upsertLetterMeta(existing, classNames, signature, now) {
+  var out = existing.slice();
+  classNames.forEach(function (className) {
+    var idx = -1;
+    for (var i = 0; i < out.length; i++) {
+      if (normName(out[i].className) === normName(className)) { idx = i; break; }
+    }
+    var prev = idx >= 0 ? out[idx] : null;
+    var row = {
+      className: prev ? prev.className : className,
+      signature: signature,
+      docId: prev ? prev.docId : '',
+      docUrl: prev ? prev.docUrl : '',
+      updated: now
+    };
+    if (idx >= 0) out[idx] = row; else out.push(row);
+  });
+  return out;
+}
+
+// Rows for the parent letter table. Apps no longer on the approved list are left out.
+function letterTableRows(table) {
+  return table.rows
+    .filter(function (r) { return !r.flagged; })
+    .map(function (r) { return [r.app, r.pii, r.purpose]; });
+}
+
 if (typeof module !== 'undefined') {
-  module.exports = { normName: normName, upsertResponses: upsertResponses, buildLetters: buildLetters, isAllowedEmail: isAllowedEmail, isStaffListed: isStaffListed, cellText: cellText, classifyAllApps: classifyAllApps, NOT_ON_LIST: NOT_ON_LIST };
+  module.exports = { normName: normName, upsertResponses: upsertResponses, buildLetters: buildLetters, isAllowedEmail: isAllowedEmail, isStaffListed: isStaffListed, cellText: cellText, classifyAllApps: classifyAllApps, cleanSignature: cleanSignature, upsertLetterMeta: upsertLetterMeta, letterTableRows: letterTableRows, NOT_ON_LIST: NOT_ON_LIST };
 }
