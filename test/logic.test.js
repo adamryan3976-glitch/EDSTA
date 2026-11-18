@@ -137,3 +137,16 @@ test('cellText leaves text and numbers alone and trims', () => {
   assert.strictEqual(cellText(3, () => 'x'), '3');
   assert.strictEqual(cellText(null, () => 'x'), '');
 });
+
+test('cellText recognises dates even when instanceof fails (cross-realm Date)', () => {
+  const fake = Object.create(Date.prototype);
+  const real = new Date(2026, 0, 2);
+  const proxy = new Proxy(real, { get: (t, k) => { const v = t[k]; return typeof v === 'function' ? v.bind(t) : v; } });
+  const fmt = d => (d.getMonth() + 1) + '/' + d.getDate();
+  assert.strictEqual(cellText(proxy, fmt), '1/2');
+});
+
+test('cellText repairs a date that was already turned into text', () => {
+  assert.strictEqual(cellText('Fri Jan 02 2026 00:00:00 GMT-0500 (Eastern Standard Time)', () => 'x'), '1/2');
+  assert.strictEqual(cellText('Wed Jul 08 2026 00:00:00 GMT-0400 (Eastern Daylight Time)', () => 'x'), '7/8');
+});
