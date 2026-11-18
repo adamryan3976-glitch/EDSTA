@@ -1,43 +1,54 @@
 # EDSTA App Collector
 
-A Google Apps Script web app for one school. Staff pick their class(es), tick the apps they use from the "For Letter" tab, and give a purpose for each. A finished three-column table per class appears on the `Letters` tab, ready to paste into the DDSB parent letter.
+Staff pick their class(es), tick the apps they use from the "For Letter" tab, and give a purpose for each. Everything is stored in your Google Sheet, and a finished three-column table per class appears on its `Letters` tab, ready to paste into the DDSB parent letter.
 
-## Important: where this runs
+## How the pieces fit
+- **Page** (`docs/`): a static site on GitHub Pages. Staff sign in with Google through Firebase Authentication.
+- **Backend** (`src/`): a Google Apps Script web app attached to your sheet. The page sends it the signed-in user's Firebase token. Apps Script asks Google to check the token, then allows only verified emails from your school domain. Nothing is trusted from the page.
+- **Data**: your "EDSTA Software" sheet (`For Letter`, `Classes`, `Responses`, `Letters`). Firebase stores no data, it is used for sign-in only.
 
-GitHub holds the code, but the app itself runs on Google. It reads and writes your Google Sheet, so it cannot run on GitHub Pages. Staff open a Google web-app link, and sign-in is limited to your board's Google domain.
+Note the Apps Script web app has to be deployed as "Anyone" so the GitHub Pages site can call it. The link looks public, but every request is rejected unless it carries a valid token for an allowed email.
 
-## Layout
-- `src/Logic.js` pure logic (tested)
-- `src/Code.js` sheet access and web app entry
-- `src/Index.html` staff page
-- `src/appsscript.json` manifest (runs as the deployer, access limited to the domain)
-- `test/logic.test.js` unit tests: `npm test`
+## Setup (one time)
 
-## Option A: copy and paste (no tools)
-1. Open the "EDSTA Software" sheet, then Extensions > Apps Script.
-2. Create files `Logic` and `Code` (script) and `Index` (HTML) and paste in the matching files from `src/`. In Project Settings tick "Show appsscript.json" and paste in `src/appsscript.json`.
+### 1. Sheet and Apps Script
+1. Open the "EDSTA Software" sheet, Extensions > Apps Script.
+2. Create `Logic` and `Code` (script) and paste in `src/Logic.js` and `src/Code.js`. In Project Settings tick "Show appsscript.json" and paste in `src/appsscript.json`. (Or use clasp: copy `.clasp.json.example` to `.clasp.json`, then `npm install` and `npm run push`.)
 3. Add a `Classes` tab: column A = class name, column B = grade(s), header in row 1. Reload the sheet and run EDSTA > Set up tabs.
-4. Deploy > New deployment > Web app. Execute as: Me. Who has access: anyone within your organization. Share the link.
-5. After any change, Deploy > Manage deployments > edit > New version.
 
-## Option B: push from this repo with clasp
-1. `npm install`, then `npx clasp login`.
-2. Copy `.clasp.json.example` to `.clasp.json` and put in your Apps Script project ID (Project Settings).
-3. `npm run push`, then deploy as in step 4 above (the first deployment is done in the Apps Script editor).
+### 2. Firebase sign-in
+1. In the Firebase console create a project (no Analytics needed). Build > Authentication > Get started > turn on the Google provider.
+2. Authentication > Settings > Authorized domains: add `YOUR-GITHUB-USERNAME.github.io`.
+3. Project settings > General: add a Web app and copy its config values (`apiKey`, `authDomain`, `projectId`) into `docs/config.js`.
 
-## Optional: deploy from GitHub Actions
-`.github/workflows/deploy.yml` can push `src/` to Apps Script when you run it by hand from the Actions tab. It needs two repository secrets, `SCRIPT_ID` and `CLASPRC_JSON` (the login file from `npx clasp login`). That file gives access to your Google scripts, so add it only if you are comfortable storing it as a secret, and keep the repo private. Skip this if unsure; Options A and B work without it.
+### 3. Tell Apps Script who may use it
+Apps Script > Project Settings > Script Properties, add:
+- `FIREBASE_API_KEY` = the same web `apiKey`
+- `ALLOWED_DOMAIN` = your staff email domain, for example `ddsb.ca`
+
+### 4. Deploy the web app
+Deploy > New deployment > Web app. Execute as: Me. Who has access: Anyone. Copy the `/exec` URL into `scriptUrl` in `docs/config.js`. After any later code change: Deploy > Manage deployments > edit > New version.
+
+### 5. Turn on GitHub Pages
+Repo Settings > Pages > Deploy from branch > `main` and folder `/docs`. Commit your filled-in `docs/config.js`. Share the Pages link with staff.
 
 ## Behaviour
 - One class: saved apps load pre-ticked and can be edited or removed.
 - Several classes (specialists, rotary): saving only adds or updates apps; nothing is removed. Remove apps from one class at a time.
 - Apps later removed from `For Letter` stay on the class table with a warning mark.
-- Responses for a class that is renamed or removed from `Classes` show under "Unknown class" on `Letters`.
+- A class renamed or removed from `Classes` shows under "Unknown class" on `Letters`.
 - The personal-information text is looked up from `For Letter` each time, never copied.
 - No student data is collected.
 
+## Tests
+`npm test` runs the unit tests for the pure logic (including the email-domain check). The page and sheet code can only be tested against the real services; use the dry run below.
+
 ## Dry run before sharing the link
+- Sign in with a school account and with a personal Gmail; the Gmail account must be refused.
 - One teacher saves one class, reloads, sees ticks restored.
 - One specialist saves three classes at once; each gets the apps.
-- Two people save at the same time; both rows appear.
-- If colleagues can't open the link, your board may block domain sharing; check with IT.
+- Two people save at once; both rows appear.
+- Open the Apps Script `/exec` URL in a browser: it should only say the service is running, with no data.
+
+## Optional: deploy code from GitHub Actions
+`.github/workflows/deploy.yml` can push `src/` to Apps Script when run by hand. It needs repository secrets `SCRIPT_ID` and `CLASPRC_JSON` (login file from `npx clasp login`), which can edit your Google scripts, so only add it if comfortable and keep the repo private. Skippable.
