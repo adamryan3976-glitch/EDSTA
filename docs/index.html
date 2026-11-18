@@ -43,12 +43,21 @@
   #bar { position: fixed; bottom: 0; left: 0; right: 0; background: #fff; border-top: 1px solid #d0d7de; padding: 10px 20px; display: flex; gap: 14px; align-items: center; }
   button { background: #1a5276; color: #fff; border: 0; padding: 10px 22px; font-size: 15px; border-radius: 4px; cursor: pointer; }
   button:disabled { background: #8aa; cursor: default; }
+  .btnlink { display: inline-block; margin-top: 14px; padding: 9px 20px; font-size: 14px; color: #1a5276; border: 1px solid #1a5276; border-radius: 4px; text-decoration: none; background: #fff; }
+  #helpBtn { display: none; padding: 4px 10px; font-size: 13px; background: #fff; color: #1a5276; margin-right: 8px; }
+  #help { display: none; position: fixed; top: 0; right: 0; bottom: 0; width: 440px; max-width: 100vw; background: #fff; border-left: 1px solid #d0d7de; box-shadow: -2px 0 8px rgba(0,0,0,.15); z-index: 50; flex-direction: column; }
+  #help.open { display: flex; }
+  #help .hbar { display: flex; align-items: center; gap: 12px; padding: 10px 14px; background: #1a5276; color: #fff; font-weight: bold; }
+  #help .hbar a { color: #fff; font-size: 13px; font-weight: normal; margin-left: auto; }
+  #help .hbar button { padding: 3px 10px; font-size: 16px; background: #fff; color: #1a5276; }
+  #help iframe { flex: 1; border: 0; width: 100%; }
+  @media (min-width: 1250px) { body.helpopen { margin-right: 440px; } body.helpopen #bar { right: 440px; } }
   #status.err { color: #b42318; } #status.ok { color: #1a7f37; }
 </style>
 </head>
 <body>
-<header><div class="brand"><img src="logo.png" alt="EDSTA logo" width="44" height="44"><h1>EDSTA: Classroom Software Disclosure</h1></div><div id="who"><span id="email"></span> <button id="signout" style="display:none;padding:4px 10px;font-size:13px">Sign out</button></div></header>
-<div id="gate"><img src="logo.png" alt="EDSTA App Tracker" width="150" height="150" class="biglogo"><p>Sign in with your school Google account to continue.</p><button id="signin">Sign in with Google</button><div id="gateMsg" class="err"></div></div>
+<header><div class="brand"><img src="logo.png" alt="EDSTA logo" width="44" height="44"><h1>EDSTA: Classroom Software Disclosure</h1></div><div id="who"><span id="email"></span> <button id="helpBtn" aria-expanded="false">Help</button><button id="signout" style="display:none;padding:4px 10px;font-size:13px">Sign out</button></div></header>
+<div id="gate"><img src="logo.png" alt="EDSTA App Tracker" width="150" height="150" class="biglogo"><p>Sign in with your school Google account to continue.</p><button id="signin">Sign in with Google</button><div id="gateMsg" class="err"></div><div><a class="btnlink" href="help.html" target="_blank" rel="noopener">How to use this app (opens in a new tab)</a></div></div>
 <main>
   <section>
     <h2>1. Choose your class(es)</h2>
@@ -69,6 +78,7 @@
     <div id="apps"></div>
   </section>
 </main>
+<aside id="help" aria-label="Help"><div class="hbar"><span>How to use this app</span><a href="help.html" target="_blank" rel="noopener">Open in new tab</a><button id="helpClose" aria-label="Close help">&times;</button></div><iframe id="helpFrame" title="Teacher guide"></iframe></aside>
 <div id="bar"><button id="save" disabled>Save</button><span id="status"></span></div>
 
 <script type="module">
@@ -103,7 +113,20 @@ function showApp(on) {
   document.querySelector('main').style.display = on ? 'block' : 'none';
   el('bar').style.display = on ? 'flex' : 'none';
   el('signout').style.display = on ? 'inline-block' : 'none';
+  el('helpBtn').style.display = on ? 'inline-block' : 'none';
+  if (!on) setHelp(false);
 }
+
+function setHelp(open) {
+  var f = el('helpFrame');
+  if (open && !f.getAttribute('src')) f.setAttribute('src', 'help.html?panel=1');
+  el('help').classList.toggle('open', open);
+  document.body.classList.toggle('helpopen', open);
+  el('helpBtn').setAttribute('aria-expanded', open ? 'true' : 'false');
+  el('helpBtn').textContent = open ? 'Close help' : 'Help';
+}
+el('helpBtn').addEventListener('click', function () { setHelp(!el('help').classList.contains('open')); });
+el('helpClose').addEventListener('click', function () { setHelp(false); });
 
 el('signin').addEventListener('click', function () {
   signInWithPopup(auth, new GoogleAuthProvider()).catch(function (e) { el('gateMsg').textContent = e.message; });
