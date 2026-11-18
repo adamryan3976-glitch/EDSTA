@@ -112,9 +112,13 @@ function readApps_() {
   });
 }
 
+function monthDay_(d) {
+  return Utilities.formatDate(d, Session.getScriptTimeZone(), 'M/d');
+}
+
 function readClasses_() {
   return readTable_(SHEETS.classes, 2).map(function (r) {
-    return { name: String(r[0]).trim(), grades: String(r[1]).trim() };
+    return { name: cellText(r[0], monthDay_), grades: cellText(r[1], monthDay_) };
   });
 }
 
