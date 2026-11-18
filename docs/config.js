@@ -6,5 +6,5 @@ export const CONFIG = {
     authDomain: "YOUR-PROJECT.firebaseapp.com",
     projectId: "YOUR-PROJECT"
   },
-  scriptUrl: "PASTE_APPS_SCRIPT_WEB_APP_URL_ENDING_IN_/exec"
+  scriptUrl: "https://script.google.com/macros/s/AKfycbzzyF0bkvNWibs8lMvATIFy-yoEUhOn-ksJlPJ5edhfZMKpqHk0JtBaJWn2lm4PSTZ7ew/exec"
 };
