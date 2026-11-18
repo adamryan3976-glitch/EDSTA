@@ -58,7 +58,13 @@
     <div class="note" id="modeNote"></div>
   </section>
   <section>
-    <h2>2. Tick the apps you use or plan to use this year</h2>
+    <h2>2. Signature for the parent letter</h2>
+    <div class="note">Type your name exactly as it should appear at the bottom of the letter.</div>
+    <input type="text" id="signature" maxlength="200" placeholder="e.g. Ms. Lyons and Mr. Smith" style="width:100%;box-sizing:border-box;padding:8px;font-size:15px">
+    <div id="letterLinks" class="note"></div>
+  </section>
+  <section>
+    <h2>3. Tick the apps you use or plan to use this year</h2>
     <input type="search" id="appFilter" placeholder="Search apps (e.g. adobe)">
     <div id="apps"></div>
   </section>
@@ -132,6 +138,39 @@ function init(d) {
   }
 }
 
+function letterFor(name) {
+  var out = null;
+  (data.letters || []).forEach(function (l) { if (norm(l.className) === norm(name)) out = l; });
+  return out;
+}
+
+function fillSignature() {
+  var ch = chosen(), sigs = {}, n = 0, last = '';
+  ch.forEach(function (c) { var l = letterFor(c); if (l && l.signature) { if (!sigs[l.signature]) n++; sigs[l.signature] = 1; last = l.signature; } });
+  var box = el('signature');
+  // keep what the teacher is typing when several classes have different saved signatures
+  if (n === 1 || ch.length === 1) box.value = last;
+}
+
+function showLinks(list) {
+  var box = el('letterLinks');
+  box.innerHTML = '';
+  list.forEach(function (l) {
+    if (!l.url) return;
+    var d = document.createElement('div');
+    d.appendChild(document.createTextNode((l.className ? l.className + ': ' : '') ));
+    var a = document.createElement('a'); a.href = l.url; a.target = '_blank'; a.rel = 'noopener';
+    a.textContent = 'Open the parent letter';
+    d.appendChild(a);
+    if (l.shared === false) {
+      var w = document.createElement('span'); w.className = 'err';
+      w.textContent = ' (not shared: your board\'s settings blocked link sharing, so parents cannot open it yet)';
+      d.appendChild(w);
+    }
+    box.appendChild(d);
+  });
+}
+
 function chosen() { return Object.keys(selClasses).filter(function (k) { return selClasses[k]; }); }
 
 function renderClasses() {
@@ -163,6 +202,8 @@ function classesChanged() {
   } else {
     el('modeNote').textContent = '';
   }
+  fillSignature();
+  showLinks(chosen().map(function (c) { var l = letterFor(c); return l ? { className: chosen().length > 1 ? c : '', url: l.url } : {}; }));
   renderApps();
 }
 
@@ -262,15 +303,18 @@ function save() {
   if (!ch.length) { say('Choose at least one class.', 'err'); return; }
   var missing = items.filter(function (i) { return !i.purpose.trim(); });
   if (missing.length) { say('Add a purpose for: ' + missing.map(function (m) { return m.app; }).join(', '), 'err'); return; }
+  var sig = el('signature').value.replace(/\s+/g, ' ').trim();
+  if (!sig) { say('Type your name for the letter signature.', 'err'); return; }
   var replace = ch.length === 1;
   if (!items.length && !replace) { say('Tick at least one app.', 'err'); return; }
   el('save').disabled = true; say('Saving...');
-  api({ action: 'save', classNames: ch, items: items, replace: replace })
+  api({ action: 'save', classNames: ch, items: items, replace: replace, signature: sig })
     .then(function (r) {
-      say('Saved ' + r.result.saved + ' entries.', 'ok');
-      return api({ action: 'bootstrap' });
+      var bad = (r.result.letters || []).filter(function (l) { return !l.ok; });
+      say('Saved ' + r.result.saved + ' entries.' + (bad.length ? ' The letter could not be updated for: ' + bad.map(function (b) { return b.className + ' (' + b.error + ')'; }).join('; ') : ' Your parent letter is up to date.'), bad.length ? 'err' : 'ok');
+      var links = r.result.letters || [];
+      return api({ action: 'bootstrap' }).then(function (b) { data = b.data; classesChanged(); showLinks(links); updateSave(); });
     })
-    .then(function (r) { data = r.data; classesChanged(); updateSave(); })
     .catch(function (e) { say(e.message, 'err'); updateSave(); });
 }
 </script>

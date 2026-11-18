@@ -35,6 +35,14 @@ Deploy > New deployment > Web app. Execute as: Me. Who has access: Anyone. Copy 
 ### 5. Turn on GitHub Pages
 Repo Settings > Pages > Deploy from branch > `main` and folder `/docs`. Commit your filled-in `docs/config.js`. Share the Pages link with staff.
 
+## Live parent letters
+Each time a class is saved, the app makes (or updates) a Google Doc for that class: a copy of the DDSB template letter with the date, a link to the live doc, the teacher's typed signature and the table of that class's apps filled in. Teachers get the link in the app and send or post it to parents. Adding an app later and saving updates the same doc.
+
+- Docs are created in a Drive folder called "EDSTA Parent Letters" (or the folder ID in the Script Property `LETTERS_FOLDER_ID`) owned by the account that runs the script, and are set to "anyone with the link can view". If your board's Google settings block that, the app says so next to the link.
+- The template is read from the doc ID at the top of `Code.js` (`TEMPLATE_DOC_ID`). The app must be able to open it. If DDSB changes the template, use EDSTA > Refresh all parent letter docs.
+- Apps that are no longer on the approved list are left out of the parent letter (they still show with a warning on `Letters`).
+- The first save after updating asks Google for new permissions (Drive and Docs). Run any function once from the editor, such as `setup`, and click Allow. Then run EDSTA > Set up tabs to create the `ClassLetters` tab, and deploy a new version.
+
 ## Behaviour
 - One class: saved apps load pre-ticked and can be edited or removed.
 - Several classes (specialists, rotary): saving only adds or updates apps; nothing is removed. Remove apps from one class at a time.

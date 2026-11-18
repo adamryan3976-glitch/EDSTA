@@ -171,3 +171,35 @@ test('classifyAllApps is case-insensitive and tolerates blanks', () => {
   assert.deepStrictEqual(out.noPii, ['A']);
   assert.deepStrictEqual(out.district, []);
 });
+
+const { cleanSignature, upsertLetterMeta, letterTableRows } = require('../src/Logic.js');
+
+test('cleanSignature trims, collapses line breaks and spaces, keeps wording', () => {
+  assert.strictEqual(cleanSignature('  Ms. Lyons\n and   Mr. Smith '), 'Ms. Lyons and Mr. Smith');
+});
+
+test('cleanSignature requires text and caps length at 200', () => {
+  assert.throws(() => cleanSignature('   '), /Signature required/);
+  assert.throws(() => cleanSignature(null), /Signature required/);
+  assert.strictEqual(cleanSignature('x'.repeat(300)).length, 200);
+});
+
+test('upsertLetterMeta sets signature for each class and keeps existing doc ids', () => {
+  const existing = [{ className: '1 Jones', signature: 'old', docId: 'D1', docUrl: 'U1', updated: 'x' }];
+  const out = upsertLetterMeta(existing, ['1 jones', '3/4 Smith'], 'Ms. J', NOW);
+  const jones = out.find(r => r.className === '1 Jones');
+  assert.strictEqual(jones.signature, 'Ms. J');
+  assert.strictEqual(jones.docId, 'D1');
+  assert.strictEqual(jones.updated, NOW);
+  const smith = out.find(r => r.className === '3/4 Smith');
+  assert.strictEqual(smith.docId, '');
+  assert.strictEqual(out.length, 2);
+});
+
+test('letterTableRows lists app, pii, purpose and leaves out apps no longer on the list', () => {
+  const rows = [
+    { app: 'A', pii: 'name', purpose: 'p1', flagged: false },
+    { app: 'Gone', pii: '(no longer on approved list)', purpose: 'p2', flagged: true },
+  ];
+  assert.deepStrictEqual(letterTableRows({ rows: rows }), [['A', 'name', 'p1']]);
+});
