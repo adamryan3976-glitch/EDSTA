@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html>
+<head>
+<base target="_top">
+<meta charset="utf-8">
+<style>
+  body { font-family: Arial, sans-serif; margin: 0; color: #202124; background: #f6f8fa; }
+  header { background: #1a5276; color: #fff; padding: 14px 20px; }
+  header h1 { margin: 0; font-size: 20px; }
+  main { max-width: 900px; margin: 16px auto; padding: 0 16px 90px; }
+  section { background: #fff; border: 1px solid #d0d7de; border-radius: 6px; padding: 14px 16px; margin-bottom: 14px; }
+  h2 { font-size: 16px; margin: 0 0 8px; }
+  input[type=search] { width: 100%; box-sizing: border-box; padding: 8px; font-size: 15px; margin-bottom: 8px; }
+  .classes { display: flex; flex-wrap: wrap; gap: 6px 16px; max-height: 180px; overflow: auto; }
+  .classes label { min-width: 190px; }
+  .app { padding: 6px 4px; border-bottom: 1px solid #eee; }
+  .app .pii { color: #57606a; font-size: 12px; margin: 2px 0 0 24px; white-space: pre-line; }
+  .app input.purpose { display: block; margin: 4px 0 0 24px; width: calc(100% - 30px); padding: 6px; font-size: 14px; }
+  .app.flagged { background: #fff4e5; }
+  .flag { color: #9a6700; font-size: 12px; margin-left: 24px; }
+  .note { color: #57606a; font-size: 13px; margin: 6px 0; }
+  #bar { position: fixed; bottom: 0; left: 0; right: 0; background: #fff; border-top: 1px solid #d0d7de; padding: 10px 20px; display: flex; gap: 14px; align-items: center; }
+  button { background: #1a5276; color: #fff; border: 0; padding: 10px 22px; font-size: 15px; border-radius: 4px; cursor: pointer; }
+  button:disabled { background: #8aa; cursor: default; }
+  #status.err { color: #b42318; } #status.ok { color: #1a7f37; }
+</style>
+</head>
+<body>
+<header><h1>EDSTA: Classroom Software Disclosure</h1></header>
+<main>
+  <section>
+    <h2>1. Choose your class(es)</h2>
+    <div class="note">Specialist or rotary teacher? Tick every class you teach.</div>
+    <input type="search" id="classFilter" placeholder="Filter classes">
+    <div class="classes" id="classes">Loading...</div>
+    <div class="note" id="modeNote"></div>
+  </section>
+  <section>
+    <h2>2. Tick the apps you use or plan to use this year</h2>
+    <input type="search" id="appFilter" placeholder="Search apps (e.g. adobe)">
+    <div id="apps"></div>
+  </section>
+</main>
+<div id="bar"><button id="save" disabled>Save</button><span id="status"></span></div>
+
+<script>
+var data = null;
+var selClasses = {};     // class name -> true
+var state = {};          // app name -> {on: bool, purpose: string}
+
+function norm(s) { return String(s || '').trim().toLowerCase(); }
+function el(id) { return document.getElementById(id); }
+function say(msg, cls) { var s = el('status'); s.textContent = msg; s.className = cls || ''; }
+
+google.script.run.withSuccessHandler(init).withFailureHandler(function (e) { say(e.message, 'err'); }).getBootstrapData();
+
+function init(d) {
+  data = d;
+  renderClasses();
+  renderApps();
+  el('classFilter').addEventListener('input', renderClasses);
+  el('appFilter').addEventListener('input', renderApps);
+  el('save').addEventListener('click', save);
+}
+
+function chosen() { return Object.keys(selClasses).filter(function (k) { return selClasses[k]; }); }
+
+function renderClasses() {
+  var f = norm(el('classFilter').value);
+  var box = el('classes');
+  box.innerHTML = '';
+  data.classes.forEach(function (c) {
+    var label = c.name + (c.grades ? ' (' + c.grades + ')' : '');
+    if (f && norm(label).indexOf(f) < 0 && !selClasses[c.name]) return;
+    var l = document.createElement('label');
+    var cb = document.createElement('input');
+    cb.type = 'checkbox'; cb.checked = !!selClasses[c.name];
+    cb.addEventListener('change', function () { selClasses[c.name] = cb.checked; classesChanged(); });
+    l.appendChild(cb); l.appendChild(document.createTextNode(' ' + label));
+    box.appendChild(l);
+  });
+}
+
+function classesChanged() {
+  var ch = chosen();
+  state = {};
+  if (ch.length === 1) {
+    data.responses.forEach(function (r) {
+      if (norm(r.className) === norm(ch[0])) state[norm(r.app)] = { on: true, purpose: r.purpose };
+    });
+    el('modeNote').textContent = 'Showing what is saved for this class. Unticking an app removes it from this class.';
+  } else if (ch.length > 1) {
+    el('modeNote').textContent = 'Adds to each class you chose. To remove an app, open that class on its own.';
+  } else {
+    el('modeNote').textContent = '';
+  }
+  renderApps();
+}
+
+function offListSaved() {
+  var ch = chosen();
+  if (ch.length !== 1) return [];
+  var onList = {};
+  data.apps.forEach(function (a) { onList[norm(a.name)] = true; });
+  var seen = {}, out = [];
+  data.responses.forEach(function (r) {
+    if (norm(r.className) === norm(ch[0]) && !onList[norm(r.app)] && !seen[norm(r.app)]) {
+      seen[norm(r.app)] = true; out.push({ name: r.app, pii: '', flagged: true });
+    }
+  });
+  return out;
+}
+
+function renderApps() {
+  var f = norm(el('appFilter').value);
+  var box = el('apps');
+  box.innerHTML = '';
+  var list = offListSaved().concat(data.apps);
+  var shown = 0;
+  list.forEach(function (a) {
+    var key = norm(a.name);
+    var on = state[key] && state[key].on;
+    if (f && key.indexOf(f) < 0 && !on) return;
+    shown++;
+    var row = document.createElement('div');
+    row.className = 'app' + (a.flagged ? ' flagged' : '');
+    var l = document.createElement('label');
+    var cb = document.createElement('input');
+    cb.type = 'checkbox'; cb.checked = !!on;
+    cb.addEventListener('change', function () {
+      state[key] = state[key] || { purpose: '' };
+      state[key].on = cb.checked;
+      renderApps();
+    });
+    l.appendChild(cb);
+    var b = document.createElement('b'); b.textContent = ' ' + a.name;
+    l.appendChild(b); row.appendChild(l);
+    if (a.flagged) {
+      var fl = document.createElement('div'); fl.className = 'flag';
+      fl.textContent = 'No longer on the approved list. Untick to remove it.';
+      row.appendChild(fl);
+    } else if (a.pii) {
+      var p = document.createElement('div'); p.className = 'pii'; p.textContent = 'Shares: ' + a.pii;
+      row.appendChild(p);
+    }
+    if (on) {
+      var inp = document.createElement('input');
+      inp.type = 'text'; inp.className = 'purpose';
+      inp.placeholder = 'Why do you use this app? (required)';
+      inp.value = state[key].purpose || '';
+      inp.addEventListener('input', function () { state[key].purpose = inp.value; updateSave(); });
+      row.appendChild(inp);
+    }
+    box.appendChild(row);
+  });
+  if (!shown) box.textContent = 'No apps match.';
+  updateSave();
+}
+
+function ticked() {
+  var out = [];
+  var names = {};
+  offListSaved().concat(data.apps).forEach(function (a) { names[norm(a.name)] = a.name; });
+  Object.keys(state).forEach(function (k) {
+    if (state[k].on && names[k]) out.push({ app: names[k], purpose: state[k].purpose || '' });
+  });
+  return out;
+}
+
+function updateSave() {
+  el('save').disabled = chosen().length === 0;
+}
+
+function save() {
+  var ch = chosen(), items = ticked();
+  if (!ch.length) { say('Choose at least one class.', 'err'); return; }
+  var missing = items.filter(function (i) { return !i.purpose.trim(); });
+  if (missing.length) { say('Add a purpose for: ' + missing.map(function (m) { return m.app; }).join(', '), 'err'); return; }
+  var replace = ch.length === 1;
+  if (!items.length && !replace) { say('Tick at least one app.', 'err'); return; }
+  el('save').disabled = true; say('Saving...');
+  google.script.run
+    .withSuccessHandler(function (r) {
+      say('Saved ' + r.saved + ' entries.', 'ok');
+      google.script.run.withSuccessHandler(function (d) { data = d; classesChanged(); updateSave(); }).getBootstrapData();
+    })
+    .withFailureHandler(function (e) { say(e.message, 'err'); updateSave(); })
+    .saveSelections(ch, items, replace);
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,25 @@
+# Optional. Pushes src/ to your Apps Script project. Run it by hand from the Actions tab.
+# Needs two repository secrets (Settings > Secrets and variables > Actions):
+#   SCRIPT_ID   the Apps Script project ID
+#   CLASPRC_JSON  contents of ~/.clasprc.json after running `npx clasp login` on your computer
+# Treat CLASPRC_JSON like a password: it lets the workflow edit your scripts.
+name: deploy-to-apps-script
+on: workflow_dispatch
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm test
+      - run: npm install --no-save @google/clasp@2.4.2
+      - name: Configure clasp
+        env:
+          SCRIPT_ID: ${{ secrets.SCRIPT_ID }}
+          CLASPRC_JSON: ${{ secrets.CLASPRC_JSON }}
+        run: |
+          echo "$CLASPRC_JSON" > ~/.clasprc.json
+          printf '{"scriptId":"%s","rootDir":"src"}' "$SCRIPT_ID" > .clasp.json
+      - run: npx clasp push --force

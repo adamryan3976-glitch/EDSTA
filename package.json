@@ -1,0 +1,14 @@
+{
+  "name": "edsta-app-collector",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Google Apps Script web app that collects, per class, which apps teachers use, for EDSTA parent notices.",
+  "scripts": {
+    "test": "node --test test/logic.test.js",
+    "push": "clasp push",
+    "deploy": "clasp push && clasp deploy"
+  },
+  "devDependencies": {
+    "@google/clasp": "^2.4.2"
+  }
+}
