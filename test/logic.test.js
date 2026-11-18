@@ -150,3 +150,24 @@ test('cellText repairs a date that was already turned into text', () => {
   assert.strictEqual(cellText('Fri Jan 02 2026 00:00:00 GMT-0500 (Eastern Standard Time)', () => 'x'), '1/2');
   assert.strictEqual(cellText('Wed Jul 08 2026 00:00:00 GMT-0400 (Eastern Daylight Time)', () => 'x'), '7/8');
 });
+
+const { classifyAllApps } = require('../src/Logic.js');
+
+test('classifyAllApps sorts no-PII and board-letter apps and ignores the rest', () => {
+  const rows = [
+    { name: '7zip', text: 'No PII required.' },
+    { name: 'Odd', text: 'No PII' },
+    { name: 'Acadience', text: 'This tool is on the District Letter and does NOT need to be included' },
+    { name: 'Zoom', text: 'Name, Email' },
+    { name: '', text: 'No PII required.' },
+  ];
+  const out = classifyAllApps(rows);
+  assert.deepStrictEqual(out.noPii, ['7zip', 'Odd']);
+  assert.deepStrictEqual(out.district, ['Acadience']);
+});
+
+test('classifyAllApps is case-insensitive and tolerates blanks', () => {
+  const out = classifyAllApps([{ name: 'A', text: ' no pii required ' }, { name: 'B', text: null }]);
+  assert.deepStrictEqual(out.noPii, ['A']);
+  assert.deepStrictEqual(out.district, []);
+});

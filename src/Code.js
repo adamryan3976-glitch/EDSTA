@@ -2,6 +2,7 @@
 
 var SHEETS = {
   apps: 'For Letter',
+  all: 'ALL',
   classes: 'Classes',
   responses: 'Responses',
   letters: 'Letters',
@@ -116,6 +117,29 @@ function monthDay_(d) {
   return Utilities.formatDate(d, Session.getScriptTimeZone(), 'M/d');
 }
 
+// Apps in the ALL tab that need no disclosure: share no PII, or already on the board letter.
+function readNoDisclosureApps_(letterApps) {
+  var sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEETS.all);
+  if (!sh || sh.getLastRow() < 2) return [];
+  var rows = sh.getRange(2, 1, sh.getLastRow() - 1, 2).getValues()
+    .map(function (r) { return { name: r[0], text: r[1] }; });
+  var c = classifyAllApps(rows);
+  var onLetter = {};
+  letterApps.forEach(function (a) { onLetter[normName(a.name)] = true; });
+  var seen = {}, out = [];
+  function add(list, status) {
+    list.forEach(function (n) {
+      var k = normName(n);
+      if (onLetter[k] || seen[k]) return; // For Letter always wins
+      seen[k] = true;
+      out.push({ name: n, status: status });
+    });
+  }
+  add(c.noPii, 'nopii');
+  add(c.district, 'district');
+  return out;
+}
+
 function readClasses_() {
   return readTable_(SHEETS.classes, 2).map(function (r) {
     return { name: cellText(r[0], monthDay_), grades: cellText(r[1], monthDay_) };
@@ -130,9 +154,11 @@ function readResponses_() {
 }
 
 function getBootstrapData(user) {
+  var apps = readApps_();
   return {
     classes: readClasses_(),
-    apps: readApps_(),
+    apps: apps,
+    others: readNoDisclosureApps_(apps),
     responses: readResponses_(),
     user: user
   };

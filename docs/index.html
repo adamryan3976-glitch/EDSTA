@@ -22,6 +22,9 @@
   .app input.purpose { display: block; margin: 4px 0 0 24px; width: calc(100% - 30px); padding: 6px; font-size: 14px; }
   .app.flagged { background: #fff4e5; }
   .flag { color: #9a6700; font-size: 12px; margin-left: 24px; }
+  .app.other { background: #f0f3f6; color: #57606a; }
+  .tag { display: inline-block; font-size: 12px; padding: 1px 8px; border-radius: 10px; margin-left: 8px; background: #d8e8d8; color: #1a5c1a; }
+  .sect { font-size: 13px; font-weight: bold; margin: 12px 0 4px; color: #57606a; }
   .note { color: #57606a; font-size: 13px; margin: 6px 0; }
   #bar { position: fixed; bottom: 0; left: 0; right: 0; background: #fff; border-top: 1px solid #d0d7de; padding: 10px 20px; display: flex; gap: 14px; align-items: center; }
   button { background: #1a5276; color: #fff; border: 0; padding: 10px 22px; font-size: 15px; border-radius: 4px; cursor: pointer; }
@@ -205,6 +208,23 @@ function renderApps() {
     }
     box.appendChild(row);
   });
+  if (f) {
+    var extra = (data.others || []).filter(function (o) { return norm(o.name).indexOf(f) >= 0; });
+    if (extra.length) {
+      var hd = document.createElement('div'); hd.className = 'sect';
+      hd.textContent = 'No need to add these to your letter';
+      box.appendChild(hd);
+      extra.forEach(function (o) {
+        shown++;
+        var r = document.createElement('div'); r.className = 'app other';
+        var nm = document.createElement('b'); nm.textContent = o.name;
+        var tg = document.createElement('span'); tg.className = 'tag';
+        tg.textContent = o.status === 'district' ? 'Already on the board letter' : 'Shares no personal information';
+        r.appendChild(nm); r.appendChild(tg);
+        box.appendChild(r);
+      });
+    }
+  }
   if (!shown) box.textContent = 'No apps match.';
   updateSave();
 }

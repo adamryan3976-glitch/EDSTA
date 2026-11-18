@@ -109,6 +109,20 @@ function cellText(v, fmtDate) {
   return t;
 }
 
+// Splits the "ALL" tab into apps that share no PII and apps already on the board letter.
+// Anything else is a "For Letter" app and is handled separately.
+function classifyAllApps(rows) {
+  var noPii = [], district = [];
+  rows.forEach(function (r) {
+    var name = String(r.name == null ? '' : r.name).trim();
+    if (!name) return;
+    var t = normName(r.text);
+    if (t.indexOf('no pii') === 0) noPii.push(name);
+    else if (t.indexOf('district letter') >= 0) district.push(name);
+  });
+  return { noPii: noPii, district: district };
+}
+
 if (typeof module !== 'undefined') {
-  module.exports = { normName: normName, upsertResponses: upsertResponses, buildLetters: buildLetters, isAllowedEmail: isAllowedEmail, isStaffListed: isStaffListed, cellText: cellText, NOT_ON_LIST: NOT_ON_LIST };
+  module.exports = { normName: normName, upsertResponses: upsertResponses, buildLetters: buildLetters, isAllowedEmail: isAllowedEmail, isStaffListed: isStaffListed, cellText: cellText, classifyAllApps: classifyAllApps, NOT_ON_LIST: NOT_ON_LIST };
 }
