@@ -2,9 +2,9 @@
 // Firebase web config is public by design; access is enforced by the Apps Script server.
 export const CONFIG = {
   firebase: {
-    apiKey: "PASTE_FIREBASE_WEB_API_KEY",
-    authDomain: "YOUR-PROJECT.firebaseapp.com",
-    projectId: "YOUR-PROJECT"
+    apiKey: "AIzaSyAjps31IMsnkDPReuPOTxKASW5gT69HrvQ",
+    authDomain: "edsta-2be6d.firebaseapp.com",
+    projectId: "edsta-2be6d"
   },
-  scriptUrl: "PASTE_APPS_SCRIPT_WEB_APP_URL_ENDING_IN_/exec"
+  scriptUrl: "https://script.google.com/macros/s/AKfycbzzyF0bkvNWibs8lMvATIFy-yoEUhOn-ksJlPJ5edhfZMKpqHk0JtBaJWn2lm4PSTZ7ew/exec"
 };

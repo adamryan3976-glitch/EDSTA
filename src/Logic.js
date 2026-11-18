@@ -87,6 +87,15 @@ function isAllowedEmail(email, verified, domain) {
   return at > 0 && e.slice(at + 1) === d;
 }
 
+// Optional allow-list: an empty list means "no extra restriction".
+function isStaffListed(email, list) {
+  var allowed = (list || []).map(function (x) { return String(x || '').trim().toLowerCase(); })
+    .filter(function (x) { return x; });
+  if (!allowed.length) return true;
+  var e = String(email || '').trim().toLowerCase();
+  return !!e && allowed.indexOf(e) >= 0;
+}
+
 if (typeof module !== 'undefined') {
-  module.exports = { normName: normName, upsertResponses: upsertResponses, buildLetters: buildLetters, isAllowedEmail: isAllowedEmail, NOT_ON_LIST: NOT_ON_LIST };
+  module.exports = { normName: normName, upsertResponses: upsertResponses, buildLetters: buildLetters, isAllowedEmail: isAllowedEmail, isStaffListed: isStaffListed, NOT_ON_LIST: NOT_ON_LIST };
 }

@@ -4,12 +4,16 @@ var SHEETS = {
   apps: 'For Letter',
   classes: 'Classes',
   responses: 'Responses',
-  letters: 'Letters'
+  letters: 'Letters',
+  staff: 'Staff'
 };
 var PII_HEADER = 'Specific Elements of Personal Information Shared (e.g., Name, Email, ID)';
 
 // ---- Web API (called by the GitHub Pages front end) ----
-// Script Properties required: FIREBASE_API_KEY, ALLOWED_DOMAIN (e.g. ddsb.ca)
+// Settings. Script Properties FIREBASE_API_KEY / ALLOWED_DOMAIN override these if set.
+// The Firebase web API key is public by design; access is enforced by the token check below.
+var DEFAULT_FIREBASE_API_KEY = 'AIzaSyAjps31IMsnkDPReuPOTxKASW5gT69HrvQ';
+var DEFAULT_ALLOWED_DOMAIN = 'ddsb.ca';
 
 function doGet() {
   return json_({ ok: true, service: 'EDSTA app collector' });
@@ -37,8 +41,8 @@ function json_(obj) {
 function verifyIdToken_(idToken) {
   if (!idToken) throw new Error('Not signed in');
   var props = PropertiesService.getScriptProperties();
-  var key = props.getProperty('FIREBASE_API_KEY');
-  var domain = props.getProperty('ALLOWED_DOMAIN');
+  var key = props.getProperty('FIREBASE_API_KEY') || DEFAULT_FIREBASE_API_KEY;
+  var domain = props.getProperty('ALLOWED_DOMAIN') || DEFAULT_ALLOWED_DOMAIN;
   if (!key || !domain) throw new Error('Server not configured (FIREBASE_API_KEY / ALLOWED_DOMAIN)');
 
   var cache = CacheService.getScriptCache();
@@ -56,6 +60,13 @@ function verifyIdToken_(idToken) {
     throw new Error('This account is not allowed. Use your ' + domain + ' account.');
   }
   var email = String(u.email).toLowerCase();
+  var staffSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEETS.staff);
+  var listed = staffSheet && staffSheet.getLastRow() > 1
+    ? staffSheet.getRange(2, 1, staffSheet.getLastRow() - 1, 1).getValues().map(function (r) { return r[0]; })
+    : [];
+  if (!isStaffListed(email, listed)) {
+    throw new Error('Your account is not on the staff list. Ask the administrator to add ' + email + '.');
+  }
   cache.put(ck, email, 300);
   return email;
 }
@@ -75,6 +86,11 @@ function setup() {
     r.setFrozenRows(1);
   }
   if (!ss.getSheetByName(SHEETS.letters)) ss.insertSheet(SHEETS.letters);
+  if (!ss.getSheetByName(SHEETS.staff)) {
+    var st = ss.insertSheet(SHEETS.staff);
+    st.getRange(1, 1).setValue('Allowed staff email (leave empty to allow everyone in the domain)').setFontWeight('bold');
+    st.setColumnWidth(1, 420);
+  }
   if (!ss.getSheetByName(SHEETS.classes)) {
     var c = ss.insertSheet(SHEETS.classes);
     c.getRange(1, 1, 1, 2).setValues([['Class', 'Grade(s)']]).setFontWeight('bold');

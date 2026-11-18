@@ -22,9 +22,12 @@ Note the Apps Script web app has to be deployed as "Anyone" so the GitHub Pages 
 3. Project settings > General: add a Web app and copy its config values (`apiKey`, `authDomain`, `projectId`) into `docs/config.js`.
 
 ### 3. Tell Apps Script who may use it
-Apps Script > Project Settings > Script Properties, add:
+`src/Code.js` already contains the Firebase key and `ddsb.ca` as defaults at the top of the file. Edit them there for a different project or domain, or override with Script Properties (Project Settings > Script Properties):
 - `FIREBASE_API_KEY` = the same web `apiKey`
 - `ALLOWED_DOMAIN` = your staff email domain, for example `ddsb.ca`
+
+### 3b. Optional staff list
+Run EDSTA > Set up tabs to create a `Staff` tab. List one allowed email per row under the header (column A). If the tab has any emails, only those people can sign in, even if they have a `@ddsb.ca` account. If it is empty, anyone with a verified email in `ALLOWED_DOMAIN` can. Use it if student accounts share your domain. Changes take up to 5 minutes to apply.
 
 ### 4. Deploy the web app
 Deploy > New deployment > Web app. Execute as: Me. Who has access: Anyone. Copy the `/exec` URL into `scriptUrl` in `docs/config.js`. After any later code change: Deploy > Manage deployments > edit > New version.
