@@ -107,3 +107,19 @@ test('isAllowedEmail rejects unverified, other domains, look-alikes and empty co
   assert.strictEqual(isAllowedEmail('ann@ddsb.ca', true, ''), false);
   assert.strictEqual(isAllowedEmail('', true, 'ddsb.ca'), false);
 });
+
+const { isStaffListed } = require('../src/Logic.js');
+
+test('isStaffListed allows everyone when the list is empty', () => {
+  assert.strictEqual(isStaffListed('a@ddsb.ca', []), true);
+  assert.strictEqual(isStaffListed('a@ddsb.ca', ['', '  ']), true);
+});
+
+test('isStaffListed matches case-insensitively and ignores spaces', () => {
+  assert.strictEqual(isStaffListed('Ann@ddsb.ca', [' ann@DDSB.ca ']), true);
+});
+
+test('isStaffListed rejects an email that is not on a non-empty list', () => {
+  assert.strictEqual(isStaffListed('student@ddsb.ca', ['ann@ddsb.ca', 'bob@ddsb.ca']), false);
+  assert.strictEqual(isStaffListed('', ['ann@ddsb.ca']), false);
+});

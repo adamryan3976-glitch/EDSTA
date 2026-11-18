@@ -4,7 +4,8 @@ var SHEETS = {
   apps: 'For Letter',
   classes: 'Classes',
   responses: 'Responses',
-  letters: 'Letters'
+  letters: 'Letters',
+  staff: 'Staff'
 };
 var PII_HEADER = 'Specific Elements of Personal Information Shared (e.g., Name, Email, ID)';
 
@@ -56,6 +57,13 @@ function verifyIdToken_(idToken) {
     throw new Error('This account is not allowed. Use your ' + domain + ' account.');
   }
   var email = String(u.email).toLowerCase();
+  var staffSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEETS.staff);
+  var listed = staffSheet && staffSheet.getLastRow() > 1
+    ? staffSheet.getRange(2, 1, staffSheet.getLastRow() - 1, 1).getValues().map(function (r) { return r[0]; })
+    : [];
+  if (!isStaffListed(email, listed)) {
+    throw new Error('Your account is not on the staff list. Ask the administrator to add ' + email + '.');
+  }
   cache.put(ck, email, 300);
   return email;
 }
@@ -75,6 +83,11 @@ function setup() {
     r.setFrozenRows(1);
   }
   if (!ss.getSheetByName(SHEETS.letters)) ss.insertSheet(SHEETS.letters);
+  if (!ss.getSheetByName(SHEETS.staff)) {
+    var st = ss.insertSheet(SHEETS.staff);
+    st.getRange(1, 1).setValue('Allowed staff email (leave empty to allow everyone in the domain)').setFontWeight('bold');
+    st.setColumnWidth(1, 420);
+  }
   if (!ss.getSheetByName(SHEETS.classes)) {
     var c = ss.insertSheet(SHEETS.classes);
     c.getRange(1, 1, 1, 2).setValues([['Class', 'Grade(s)']]).setFontWeight('bold');
