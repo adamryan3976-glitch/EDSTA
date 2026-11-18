@@ -399,3 +399,12 @@ function refreshAllLetterDocs() {
   SpreadsheetApp.getUi().alert('Refreshed ' + (results.length - bad.length) + ' letter(s).' +
     (bad.length ? '\n\nProblems:\n' + bad.map(function (b) { return b.className + ': ' + b.error; }).join('\n') : ''));
 }
+
+// Run this once from the Apps Script editor (select "authorizeAll", click Run, then Allow).
+// It touches every Google service the app uses so one approval covers all of them.
+function authorizeAll() {
+  SpreadsheetApp.getActiveSpreadsheet().getName();
+  DriveApp.getRootFolder().getName();
+  DocumentApp.openById(TEMPLATE_DOC_ID).getName(); // also proves this account can open the template
+  Logger.log('All permissions approved, and the letter template can be opened.');
+}
