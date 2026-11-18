@@ -98,10 +98,31 @@ function isStaffListed(email, list) {
 
 // Cell value to text. Sheets turns "1/2" into a date; fmtDate(d) must give back "1/2".
 function cellText(v, fmtDate) {
-  if (v instanceof Date) return fmtDate(v);
-  return String(v == null ? '' : v).trim();
+  if (Object.prototype.toString.call(v) === '[object Date]') return fmtDate(v);
+  var t = String(v == null ? '' : v).trim();
+  // A date that was already converted to text, e.g. "Fri Jan 02 2026 00:00:00 GMT-0500 (...)".
+  var m = /^[A-Z][a-z]{2} ([A-Z][a-z]{2}) (\d{2}) \d{4} \d{2}:\d{2}:\d{2} GMT/.exec(t);
+  if (m) {
+    var month = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'].indexOf(m[1]);
+    if (month >= 0) return (month + 1) + '/' + parseInt(m[2], 10);
+  }
+  return t;
+}
+
+// Splits the "ALL" tab into apps that share no PII and apps already on the board letter.
+// Anything else is a "For Letter" app and is handled separately.
+function classifyAllApps(rows) {
+  var noPii = [], district = [];
+  rows.forEach(function (r) {
+    var name = String(r.name == null ? '' : r.name).trim();
+    if (!name) return;
+    var t = normName(r.text);
+    if (t.indexOf('no pii') === 0) noPii.push(name);
+    else if (t.indexOf('district letter') >= 0) district.push(name);
+  });
+  return { noPii: noPii, district: district };
 }
 
 if (typeof module !== 'undefined') {
-  module.exports = { normName: normName, upsertResponses: upsertResponses, buildLetters: buildLetters, isAllowedEmail: isAllowedEmail, isStaffListed: isStaffListed, cellText: cellText, NOT_ON_LIST: NOT_ON_LIST };
+  module.exports = { normName: normName, upsertResponses: upsertResponses, buildLetters: buildLetters, isAllowedEmail: isAllowedEmail, isStaffListed: isStaffListed, cellText: cellText, classifyAllApps: classifyAllApps, NOT_ON_LIST: NOT_ON_LIST };
 }
