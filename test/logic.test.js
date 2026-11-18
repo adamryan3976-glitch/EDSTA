@@ -91,3 +91,19 @@ test('buildLetters reports unknown class and classes with no response', () => {
   assert.strictEqual(out.unknownClass.length, 1);
   assert.strictEqual(out.unknownClass[0].className, 'Old Class');
 });
+
+const { isAllowedEmail } = require('../src/Logic.js');
+
+test('isAllowedEmail accepts verified email in the domain, case-insensitively', () => {
+  assert.strictEqual(isAllowedEmail('Ann@DDSB.ca', true, 'ddsb.ca'), true);
+  assert.strictEqual(isAllowedEmail('ann@ddsb.ca', true, '@ddsb.ca'), true);
+});
+
+test('isAllowedEmail rejects unverified, other domains, look-alikes and empty config', () => {
+  assert.strictEqual(isAllowedEmail('ann@ddsb.ca', false, 'ddsb.ca'), false);
+  assert.strictEqual(isAllowedEmail('ann@gmail.com', true, 'ddsb.ca'), false);
+  assert.strictEqual(isAllowedEmail('ann@evil-ddsb.ca', true, 'ddsb.ca'), false);
+  assert.strictEqual(isAllowedEmail('ann@ddsb.ca.evil.com', true, 'ddsb.ca'), false);
+  assert.strictEqual(isAllowedEmail('ann@ddsb.ca', true, ''), false);
+  assert.strictEqual(isAllowedEmail('', true, 'ddsb.ca'), false);
+});

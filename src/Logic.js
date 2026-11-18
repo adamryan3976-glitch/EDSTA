@@ -78,6 +78,15 @@ function buildLetters(classes, responses, apps) {
   };
 }
 
+// True only for a verified email whose domain is exactly `domain` (with or without a leading @).
+function isAllowedEmail(email, verified, domain) {
+  var d = String(domain || '').trim().toLowerCase().replace(/^@/, '');
+  var e = String(email || '').trim().toLowerCase();
+  if (!verified || !d || !e) return false;
+  var at = e.lastIndexOf('@');
+  return at > 0 && e.slice(at + 1) === d;
+}
+
 if (typeof module !== 'undefined') {
-  module.exports = { normName: normName, upsertResponses: upsertResponses, buildLetters: buildLetters, NOT_ON_LIST: NOT_ON_LIST };
+  module.exports = { normName: normName, upsertResponses: upsertResponses, buildLetters: buildLetters, isAllowedEmail: isAllowedEmail, NOT_ON_LIST: NOT_ON_LIST };
 }

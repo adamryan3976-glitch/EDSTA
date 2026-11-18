@@ -8,10 +8,56 @@ var SHEETS = {
 };
 var PII_HEADER = 'Specific Elements of Personal Information Shared (e.g., Name, Email, ID)';
 
+// ---- Web API (called by the GitHub Pages front end) ----
+// Script Properties required: FIREBASE_API_KEY, ALLOWED_DOMAIN (e.g. ddsb.ca)
+
 function doGet() {
-  return HtmlService.createHtmlOutputFromFile('Index')
-    .setTitle('EDSTA App Disclosure')
-    .addMetaTag('viewport', 'width=device-width, initial-scale=1');
+  return json_({ ok: true, service: 'EDSTA app collector' });
+}
+
+function doPost(e) {
+  try {
+    var req = JSON.parse(e.postData.contents);
+    var email = verifyIdToken_(req.idToken);
+    if (req.action === 'bootstrap') return json_({ ok: true, data: getBootstrapData(email) });
+    if (req.action === 'save') {
+      return json_({ ok: true, result: saveSelections(req.classNames || [], req.items || [], !!req.replace, email) });
+    }
+    return json_({ ok: false, error: 'Unknown action' });
+  } catch (err) {
+    return json_({ ok: false, error: String(err && err.message ? err.message : err) });
+  }
+}
+
+function json_(obj) {
+  return ContentService.createTextOutput(JSON.stringify(obj)).setMimeType(ContentService.MimeType.JSON);
+}
+
+// Validates a Firebase ID token with Google and returns the verified email, or throws.
+function verifyIdToken_(idToken) {
+  if (!idToken) throw new Error('Not signed in');
+  var props = PropertiesService.getScriptProperties();
+  var key = props.getProperty('FIREBASE_API_KEY');
+  var domain = props.getProperty('ALLOWED_DOMAIN');
+  if (!key || !domain) throw new Error('Server not configured (FIREBASE_API_KEY / ALLOWED_DOMAIN)');
+
+  var cache = CacheService.getScriptCache();
+  var ck = 'tok_' + Utilities.base64EncodeWebSafe(
+    Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, idToken)).slice(0, 40);
+  var hit = cache.get(ck);
+  if (hit) return hit;
+
+  var resp = UrlFetchApp.fetch(
+    'https://identitytoolkit.googleapis.com/v1/accounts:lookup?key=' + encodeURIComponent(key),
+    { method: 'post', contentType: 'application/json', payload: JSON.stringify({ idToken: idToken }), muteHttpExceptions: true });
+  if (resp.getResponseCode() !== 200) throw new Error('Sign-in expired. Please sign in again.');
+  var u = (JSON.parse(resp.getContentText()).users || [])[0];
+  if (!u || !isAllowedEmail(u.email, u.emailVerified, domain)) {
+    throw new Error('This account is not allowed. Use your ' + domain + ' account.');
+  }
+  var email = String(u.email).toLowerCase();
+  cache.put(ck, email, 300);
+  return email;
 }
 
 function onOpen() {
@@ -63,16 +109,16 @@ function readResponses_() {
   });
 }
 
-function getBootstrapData() {
+function getBootstrapData(user) {
   return {
     classes: readClasses_(),
     apps: readApps_(),
     responses: readResponses_(),
-    user: Session.getActiveUser().getEmail()
+    user: user
   };
 }
 
-function saveSelections(classNames, items, replace) {
+function saveSelections(classNames, items, replace, who) {
   var classes = readClasses_(), apps = readApps_();
   var validClass = {}, validApp = {};
   classes.forEach(function (c) { validClass[normName(c.name)] = c.name; });
@@ -101,7 +147,6 @@ function saveSelections(classNames, items, replace) {
     // Re-read inside the lock so concurrent saves are not lost.
     var current = readResponses_();
     var now = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyy-MM-dd HH:mm');
-    var who = Session.getActiveUser().getEmail();
     var merged = upsertResponses(current, cleanClasses, cleanItems, !!replace, who, now);
 
     var sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEETS.responses);

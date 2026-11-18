@@ -1,12 +1,16 @@
 <!DOCTYPE html>
 <html>
 <head>
-<base target="_top">
 <meta charset="utf-8">
 <style>
   body { font-family: Arial, sans-serif; margin: 0; color: #202124; background: #f6f8fa; }
   header { background: #1a5276; color: #fff; padding: 14px 20px; }
+  header { display: flex; justify-content: space-between; align-items: center; }
   header h1 { margin: 0; font-size: 20px; }
+  #who { font-size: 13px; }
+  #gate { max-width: 420px; margin: 60px auto; text-align: center; }
+  .err { color: #b42318; margin-top: 10px; }
+  main, #bar { display: none; }
   main { max-width: 900px; margin: 16px auto; padding: 0 16px 90px; }
   section { background: #fff; border: 1px solid #d0d7de; border-radius: 6px; padding: 14px 16px; margin-bottom: 14px; }
   h2 { font-size: 16px; margin: 0 0 8px; }
@@ -26,7 +30,8 @@
 </style>
 </head>
 <body>
-<header><h1>EDSTA: Classroom Software Disclosure</h1></header>
+<header><h1>EDSTA: Classroom Software Disclosure</h1><div id="who"><span id="email"></span> <button id="signout" style="display:none;padding:4px 10px;font-size:13px">Sign out</button></div></header>
+<div id="gate"><p>Sign in with your school Google account to continue.</p><button id="signin">Sign in with Google</button><div id="gateMsg" class="err"></div></div>
 <main>
   <section>
     <h2>1. Choose your class(es)</h2>
@@ -43,7 +48,13 @@
 </main>
 <div id="bar"><button id="save" disabled>Save</button><span id="status"></span></div>
 
-<script>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
+import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
+import { CONFIG } from "./config.js";
+
+var fbApp = initializeApp(CONFIG.firebase);
+var auth = getAuth(fbApp);
 var data = null;
 var selClasses = {};     // class name -> true
 var state = {};          // app name -> {on: bool, purpose: string}
@@ -52,15 +63,56 @@ function norm(s) { return String(s || '').trim().toLowerCase(); }
 function el(id) { return document.getElementById(id); }
 function say(msg, cls) { var s = el('status'); s.textContent = msg; s.className = cls || ''; }
 
-google.script.run.withSuccessHandler(init).withFailureHandler(function (e) { say(e.message, 'err'); }).getBootstrapData();
+async function api(body) {
+  var user = auth.currentUser;
+  if (!user) throw new Error('Not signed in');
+  var token = await user.getIdToken();
+  body.idToken = token;
+  // text/plain keeps this a "simple" request, which Apps Script accepts cross-origin.
+  var res = await fetch(CONFIG.scriptUrl, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(body) });
+  var j = await res.json();
+  if (!j.ok) throw new Error(j.error || 'Request failed');
+  return j;
+}
+
+function showApp(on) {
+  el('gate').style.display = on ? 'none' : 'block';
+  document.querySelector('main').style.display = on ? 'block' : 'none';
+  el('bar').style.display = on ? 'flex' : 'none';
+  el('signout').style.display = on ? 'inline-block' : 'none';
+}
+
+el('signin').addEventListener('click', function () {
+  signInWithPopup(auth, new GoogleAuthProvider()).catch(function (e) { el('gateMsg').textContent = e.message; });
+});
+el('signout').addEventListener('click', function () { signOut(auth); });
+
+var wired = false;
+onAuthStateChanged(auth, async function (user) {
+  el('email').textContent = user ? user.email : '';
+  if (!user) { showApp(false); return; }
+  try {
+    var r = await api({ action: 'bootstrap' });
+    showApp(true);
+    init(r.data);
+  } catch (e) {
+    showApp(false);
+    el('gateMsg').textContent = e.message;
+    signOut(auth);
+  }
+});
 
 function init(d) {
   data = d;
+  selClasses = {}; state = {};
   renderClasses();
   renderApps();
-  el('classFilter').addEventListener('input', renderClasses);
-  el('appFilter').addEventListener('input', renderApps);
-  el('save').addEventListener('click', save);
+  if (!wired) {
+    wired = true;
+    el('classFilter').addEventListener('input', renderClasses);
+    el('appFilter').addEventListener('input', renderApps);
+    el('save').addEventListener('click', save);
+  }
 }
 
 function chosen() { return Object.keys(selClasses).filter(function (k) { return selClasses[k]; }); }
@@ -179,13 +231,13 @@ function save() {
   var replace = ch.length === 1;
   if (!items.length && !replace) { say('Tick at least one app.', 'err'); return; }
   el('save').disabled = true; say('Saving...');
-  google.script.run
-    .withSuccessHandler(function (r) {
-      say('Saved ' + r.saved + ' entries.', 'ok');
-      google.script.run.withSuccessHandler(function (d) { data = d; classesChanged(); updateSave(); }).getBootstrapData();
+  api({ action: 'save', classNames: ch, items: items, replace: replace })
+    .then(function (r) {
+      say('Saved ' + r.result.saved + ' entries.', 'ok');
+      return api({ action: 'bootstrap' });
     })
-    .withFailureHandler(function (e) { say(e.message, 'err'); updateSave(); })
-    .saveSelections(ch, items, replace);
+    .then(function (r) { data = r.data; classesChanged(); updateSave(); })
+    .catch(function (e) { say(e.message, 'err'); updateSave(); });
 }
 </script>
 </body>
